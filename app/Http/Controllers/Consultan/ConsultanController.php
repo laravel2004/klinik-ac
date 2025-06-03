@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Consultan;
 
 use App\Http\Controllers\Controller;
+use App\Models\Service;
 use Illuminate\Http\Request;
 use OpenAI\Laravel\Facades\OpenAI;
 
@@ -15,6 +16,21 @@ class ConsultanController extends Controller
             $validated = $request->validate([
                 'keluhan' => 'required|string|max:1000',
             ]);
+
+            $services = Service::with('serviceUnit')->get();
+            if ($services ->isEmpty()) {
+                return response()->json([
+                    'error' => 'Tidak ada layanan yang tersedia',
+                ], 404);
+            }
+
+            $data = $services->map(function ($service) {
+                return [
+                    'service' => $service->name,
+                    'satuan' => $service->serviceUnit->name,
+                    'harga' => $service->price,
+                ];
+            })->toArray();
 
             $services = [
                 ["service" => "Cek AC", "satuan" => "unit", "harga" => 50000],
@@ -41,7 +57,7 @@ class ConsultanController extends Controller
                 ["service" => "Perbaikan sensor (matakucing)", "satuan" => "unit", "harga" => 275000],
             ];
 
-            $systemMessage = "Anda adalah asisten Anugrah Teknik Klinik AC yang membantu mendiagnosa masalah AC dan merekomendasikan layanan yang sesuai dari daftar berikut. Balas dengan format JSON dengan dua properti: 'deskripsi' (penjelasan masalah diagnosa yang kamu dapat) dan 'rekomendasi' (array layanan terkait dengan harga).\nLayanan:\n" . json_encode($services);
+            $systemMessage = "Anda adalah asisten Anugrah Teknik Klinik AC yang membantu mendiagnosa masalah AC dan merekomendasikan layanan yang sesuai dari daftar berikut. Balas dengan format JSON dengan dua properti: 'deskripsi' (penjelasan masalah diagnosa yang kamu dapat) dan 'rekomendasi' (array layanan terkait dengan harga).\nLayanan:\n" . json_encode($data);
 
             $response = OpenAI::chat()->create([
                 'model' => 'gpt-3.5-turbo',

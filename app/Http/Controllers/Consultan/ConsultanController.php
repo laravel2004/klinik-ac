@@ -18,7 +18,7 @@ class ConsultanController extends Controller
             ]);
 
             $services = Service::with('serviceUnit')->get();
-            if ($services ->isEmpty()) {
+            if ($services->count() < 0) {
                 return response()->json([
                     'error' => 'Tidak ada layanan yang tersedia',
                 ], 404);
